@@ -2,3 +2,6 @@ logs/
 .venv
 __pycache__/
 *.pyc
+*_metrics.csv
+# Ignore daily log files but keep directory structure
+logs/**/*.csv

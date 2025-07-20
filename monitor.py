@@ -12,10 +12,12 @@ class MetricStore:
         self.retention = retention_seconds
         self.data = {target: deque(maxlen=retention_seconds) for target in TARGETS}
 
-    def add(self, target, latency_ms):
+    def add(self, target, latency_ms, timestamp=None):
+        if timestamp is None:
+            timestamp = datetime.utcnow().isoformat()
         self.data[target].append(
             {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": timestamp,
                 "latency": latency_ms,
             }
         )
@@ -26,15 +28,32 @@ class MetricStore:
             return {
                 "packet_loss_percent": 100.0,
                 "average_latency": None,
+                "min_latency": None,
+                "max_latency": None,
                 "jitter": None,
+                "std_deviation": None,
                 "records": [],
             }
 
         valid_latencies = [r["latency"] for r in records if r["latency"] is not None]
         packet_loss = 100 * (len(records) - len(valid_latencies)) / len(records)
-        avg_latency = (
-            sum(valid_latencies) / len(valid_latencies) if valid_latencies else None
-        )
+
+        if not valid_latencies:
+            return {
+                "packet_loss_percent": round(packet_loss, 2),
+                "average_latency": None,
+                "min_latency": None,
+                "max_latency": None,
+                "jitter": None,
+                "std_deviation": None,
+                "records": records,
+            }
+
+        avg_latency = sum(valid_latencies) / len(valid_latencies)
+        min_latency = min(valid_latencies)
+        max_latency = max(valid_latencies)
+
+        # Calculate jitter (average of absolute differences between consecutive measurements)
         jitter = (
             sum(
                 abs(valid_latencies[i] - valid_latencies[i - 1])
@@ -45,12 +64,19 @@ class MetricStore:
             else 0.0
         )
 
+        # Calculate standard deviation
+        variance = sum((x - avg_latency) ** 2 for x in valid_latencies) / len(
+            valid_latencies
+        )
+        std_deviation = variance**0.5
+
         return {
             "packet_loss_percent": round(packet_loss, 2),
-            "average_latency": (
-                round(avg_latency, 2) if avg_latency is not None else None
-            ),
-            "jitter": round(jitter, 2) if avg_latency is not None else None,
+            "average_latency": round(avg_latency, 2),
+            "min_latency": round(min_latency, 2),
+            "max_latency": round(max_latency, 2),
+            "jitter": round(jitter, 2),
+            "std_deviation": round(std_deviation, 2),
             "records": records,
         }
 
