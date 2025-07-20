@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Network Monitor Dashboard</title>
+    <script src="/static/chart.js"></script>
+    <script src="https://unpkg.com/htmx.org"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        background: linear-gradient(135deg, #f0f4f8 0%, #cfe2f3 100%);
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen font-mono bg-gradient-to-br from-blue-50 to-blue-100"
+  >
+    <header
+      class="mb-8 flex items-center justify-between p-6 rounded-lg shadow-lg bg-white/80 backdrop-blur border-b border-blue-200"
+    >
+      <h1 class="text-4xl font-bold text-blue-700 tracking-tight drop-shadow">
+        Network Monitoring Dashboard
+      </h1>
+      <span
+        class="px-4 py-2 bg-blue-600 text-white rounded-full shadow text-lg font-semibold"
+        >Live</span
+      >
+    </header>
+
+    <main class="container mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-12">
+        {% for target in targets %}
+        <div
+          class="p-8 border border-blue-200 rounded-2xl shadow-xl bg-white/90 hover:scale-[1.02] transition-transform duration-200 max-w-4xl mx-auto"
+        >
+          <h2
+            class="text-2xl font-semibold text-blue-600 mb-2 flex items-center gap-2"
+          >
+            <svg
+              class="w-6 h-6 text-blue-400"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 11c0-1.104.896-2 2-2s2 .896 2 2-.896 2-2 2-2-.896-2-2zm0 0V7m0 4v4m0-4H8m4 0h4"
+              />
+            </svg>
+            {{ target }}
+          </h2>
+          <div
+            hx-get="/api/metrics/{{ target }}"
+            hx-trigger="every 5s"
+            hx-swap="none"
+            class="mb-4 text-gray-500 hidden"
+          >
+            Loading...
+          </div>
+          <div class="bg-blue-50 rounded-lg p-4 mb-2">
+            <canvas
+              id="chart-{{ target }}"
+              class="w-full h-80 min-w-[600px]"
+            ></canvas>
+          </div>
+          <script>
+            const ctx{{ loop.index }} = document.getElementById('chart-{{ target }}').getContext('2d');
+            const chart{{ loop.index }} = new Chart(ctx{{ loop.index }}, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Latency (ms)',
+                        data: [],
+                        fill: false,
+                        borderColor: '#2563eb',
+                        backgroundColor: '#60a5fa',
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#2563eb',
+                    }]
+                },
+                options: {
+                    animation: false,
+                    scales: {
+                      x: {
+                        ticks: {
+                          color: '#2563eb',
+                          font: { size: 13 },
+                        }
+                      },
+                      y: { beginAtZero: true }
+                    },
+                    plugins: {
+                      legend: { labels: { color: '#2563eb', font: { size: 14 } } }
+                    }
+                }
+            });
+
+            function formatTime(ts) {
+              // Try to parse ISO or fallback
+              const d = new Date(ts);
+              if (!isNaN(d)) {
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              }
+              return ts;
+            }
+
+            async function updateChart() {
+                const res = await fetch('/api/metrics/{{ target }}');
+                const data = await res.json();
+                const labels = data.records.map(r => formatTime(r.timestamp));
+                const latencies = data.records.map(r => r.latency ?? 0);
+                chart{{ loop.index }}.data.labels = labels;
+                chart{{ loop.index }}.data.datasets[0].data = latencies;
+                chart{{ loop.index }}.update();
+            }
+            setInterval(updateChart, 5000);
+          </script>
+        </div>
+        {% endfor %}
+      </div>
+    </main>
+  </body>
+</html>
