@@ -11,15 +11,43 @@ A comprehensive network monitoring dashboard that tracks latency, jitter, packet
 - **Status Indicators**: Color-coded connection status (Online/Poor/Offline)
 - **Data Management**: Built-in tools for data export and cleanup
 
-## Installation
+## Quick Start
+
+### Simple Commands
+
+```bash
+# Start the application
+./start.sh
+
+# Stop the application
+./stop.sh
+```
+
+### Management Functions
+
+For more control, source the management script:
+
+```bash
+source netmon.sh
+```
+
+This gives you access to these commands:
+
+- `netmon_start` - Start the NetMon application
+- `netmon_stop` - Stop the NetMon application
+- `netmon_restart` - Restart the NetMon application
+- `netmon_status` - Check if NetMon is running
+- `netmon_logs` - View application logs (real-time)
+- `netmon_dashboard` - Open dashboard in browser
+- `netmon_data` - Access data management tools
+- `netmon_help` - Show all available commands
+
+Short aliases are also available: `nm_start`, `nm_stop`, `nm_restart`, `nm_status`, `nm_logs`, `nm_dash`, `nm_help`
+
+## Manual Installation and Running
 
 ```bash
 pip install -r requirements.txt
-```
-
-## Running the Application
-
-```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 

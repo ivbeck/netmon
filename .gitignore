@@ -5,3 +5,5 @@ __pycache__/
 *_metrics.csv
 # Ignore daily log files but keep directory structure
 logs/**/*.csv
+.netmon.pid
+app.log
